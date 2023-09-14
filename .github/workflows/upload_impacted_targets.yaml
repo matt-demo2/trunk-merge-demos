@@ -15,10 +15,10 @@ jobs:
           lfs: true
 
       - name: Compute Impacted Targets
-        uses: trunk-io/merge-action@main
+        uses: trunk-io/merge-action@v1
         with:
           trunk-token: ${{ secrets.TRUNK_REPO_API_TOKEN }}
-          bazel-workspace-path: test_workspace
+          bazel-workspace-path: workspace
           verbose: 1
         env:
           API_URL: https://api.trunk-staging.io:443/v1/setImpactedTargets

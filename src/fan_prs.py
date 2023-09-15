@@ -1,11 +1,13 @@
-import constants
 from github import Auth, Github
+
+import constants
+from demo_pr import DemoPr
 
 auth = Auth.Token(constants.GH_ACCESS_TOKEN)
 
 g = Github(auth=auth)
 
-for repo in g.get_user().get_repos():
-    print(repo.name)
+repo = g.get_repo(constants.REPO)
 
-g.close()
+demo_pr = DemoPr(repo, ["1"])
+demo_pr.create()

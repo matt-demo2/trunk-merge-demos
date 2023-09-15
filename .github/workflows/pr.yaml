@@ -18,8 +18,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: build
-        run: sleep 5s
+      - name: Initial Sleep
+        run: sleep 15s
 
       - name: Check for fail file existence
         id: run_forever
@@ -27,8 +27,5 @@ jobs:
         with:
           files: "**/fail_tests*.txt"
 
-      - name: Run forever
-        if:
-          steps.run_forever.outputs.files_exists == 'true' && startsWith(env.BRANCH_NAME,
-          'trunk-merge')
-        run: sleep 180s
+      - name: Final Sleep
+        run: sleep 15s

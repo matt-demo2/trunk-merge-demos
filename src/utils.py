@@ -1,5 +1,6 @@
 import logging
 import random
+import re
 import string
 
 from tenacity import (
@@ -87,6 +88,18 @@ def wait_until_check_run_passes(commit, check_name):
     return check_run.conclusion == "success"
 
 
+def get_content_file_paths_recursively(repo, dir):
+    file_paths = []
+    contents = repo.get_contents(dir)
+    while contents:
+        file_content = contents.pop(0)
+        if file_content.type == "dir":
+            contents.extend(repo.get_contents(file_content.path))
+        else:
+            file_paths.append(file_content.path)
+    return file_paths
+
+
 def clean_repo(repo):
     open_prs = repo.get_pulls(state="open")
     logging.info("Closing all PRs opened by test scripts on %s", repo.full_name)
@@ -94,3 +107,10 @@ def clean_repo(repo):
         if p_r.title.startswith(TEST_PR_PREFIX):
             p_r.edit(state="closed")
     logging.info("Done closing open PRs on repo")
+
+    logging.info("Resetting repo")
+
+    # file_paths = get_content_file_paths_recursively(repo, "demo_workspace")
+    # file_deletions = []
+    # for file in file_paths:
+    #     if re.search("target_")

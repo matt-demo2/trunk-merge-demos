@@ -1,5 +1,16 @@
+import logging
 import random
 import string
+
+from tenacity import (
+    retry,
+    retry_if_not_result,
+    stop_after_attempt,
+    stop_after_delay,
+    wait_random,
+)
+
+TEST_PR_PREFIX = "[Merge Test]"
 
 
 def get_random_string(length):
@@ -10,7 +21,7 @@ def get_random_string(length):
     return result_str
 
 
-def create_pull_request(repo, source_branch, targets_to_impact):
+def create_test_pull_request(repo, source_branch, targets_to_impact):
     s_b = repo.get_branch(source_branch)
     t_b = f"branch_for_demo_{get_random_string(10)}"
     repo.create_git_ref(ref="refs/heads/" + t_b, sha=s_b.commit.sha)
@@ -24,16 +35,62 @@ def create_pull_request(repo, source_branch, targets_to_impact):
         )
 
     pr_body = """
-        THIS PR IS MANAGED BY THE TRUNK MERGE DEMO SCRIPT.
+THIS PR IS MANAGED BY THE TRUNK MERGE DEMO SCRIPT.
 
-        It was openend for the purpose of demonstrating the merge graph, and either will be merged or eventually closed.
-        """
+It was openend for the purpose of demonstrating the merge graph, and either will be merged or eventually closed.
+
+To force close this PR, run `python3 ./clean_repo.py
+    """
 
     p_r = repo.create_pull(
-        title=f"PR impacting targets {', '.join(targets_to_impact)}",
+        title=f"{TEST_PR_PREFIX} - PR impacting targets {', '.join(targets_to_impact)}",
         body=pr_body,
         head=t_b,
         base="main",
     )
-    print(p_r)
     return p_r
+
+
+@retry(
+    wait=wait_random(min=5, max=10),
+    stop=(stop_after_attempt(10) | stop_after_delay(90)),
+    reraise=True,
+    retry=retry_if_not_result(lambda result: result is True),
+)
+def wait_until_check_run_passes(commit, check_name):
+    check_runs = commit.get_check_runs(check_name="Compute Impacted Targets")
+    if check_runs.totalCount == 0:
+        logging.debug(
+            "No checks with name %s found on commit %s. Retrying.",
+            check_name,
+            commit.sha,
+        )
+        return False
+    if check_runs.totalCount > 1:
+        logging.error(
+            "Too many check runs found on commit %s with name %s. Aborting.",
+            commit.sha,
+            check_name,
+        )
+        raise AssertionError(
+            f"Too many check runs found for commit {commit.sha} with name {check_name}"
+        )
+    check_run = check_runs[0]
+    if check_run.conclusion == "failure":
+        raise AssertionError(
+            f"Check run {check_name} failed when it should have passed"
+        )
+
+    logging.info(
+        "%s status for commit %s = %s", check_name, commit.sha, check_run.conclusion
+    )
+    return check_run.conclusion == "success"
+
+
+def clean_repo(repo):
+    open_prs = repo.get_pulls(state="open")
+    logging.info("Closing all PRs opened by test scripts on %s", repo.full_name)
+    for p_r in open_prs:
+        if p_r.title.startswith(TEST_PR_PREFIX):
+            p_r.edit(state="closed")
+    logging.info("Done closing open PRs on repo")

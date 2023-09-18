@@ -9,7 +9,7 @@ on:
 
 jobs:
   pr:
-    name: Run Pull Request checks
+    name: Run Merge branch checks
     runs-on: ubuntu-latest
     env:
       BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Initial Sleep
-        run: sleep 15s
+        run: sleep 20s
 
       - name: Check for fail file existence
         id: run_forever
@@ -28,4 +28,4 @@ jobs:
           files: "**/fail_tests*.txt"
 
       - name: Final Sleep
-        run: sleep 15s
+        run: sleep 20s

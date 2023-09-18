@@ -20,3 +20,8 @@ actions:
     - trunk-check-pre-push
     - trunk-fmt-pre-commit
     - trunk-upgrade-available
+
+merge:
+  service: graph
+  required_statuses:
+    - Run Merge branch checks

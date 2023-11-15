@@ -91,7 +91,3 @@ Then from there, watch the magic on the "Graph" tab for the Merge Graph in the T
 ## Cleaning the Test Repo
 
 TODO: Add script to clean up the test repo
-
-## Contributing
-
-TODO: Add notes about contributions and guidelines.
